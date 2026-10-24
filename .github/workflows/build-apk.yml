@@ -28,10 +28,16 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # 안드로이드에 필요한 모든 Gradle 빌드 껍데기 파일들을 클라우드에서 자동 생성!
-      - name: Generate Android Scaffold
+      # 1. 겹친 하위 폴더 자동 정리 & 최신 안드로이드 Gradle 8 규격에 맞게 자동 교정
+      - name: Prepare Project Structure & Fix AGP 8
         run: |
-          flutter create --platforms=android .
+          if [ -d "school_walkon/lib" ]; then
+            echo "하위 폴더 내용물을 루트로 자동 이동 중..."
+            cp -r school_walkon/* .
+          fi
+          # AndroidManifest.xml에서 package="..." 속성 자동 제거 (Gradle 8 규격 맞춤)
+          find . -name "AndroidManifest.xml" -exec sed -i 's/package="[^"]*"//g' {} + || true
+          flutter create --platforms=android --org com.school .
 
       - name: Install Dependencies
         run: flutter pub get
