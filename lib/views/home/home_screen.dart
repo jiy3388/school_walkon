@@ -451,7 +451,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             '${entry.rank}',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: entry.rank <= 3 ? Colors.amber.shade800 : Colors.black800,
+              color: entry.rank <= 3 ? Colors.amber.shade800 : Colors.black87,
             ),
           ),
         ),
