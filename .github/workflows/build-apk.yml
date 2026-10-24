@@ -28,6 +28,11 @@ jobs:
           channel: 'stable'
           cache: true
 
+      # 안드로이드에 필요한 모든 Gradle 빌드 껍데기 파일들을 클라우드에서 자동 생성!
+      - name: Generate Android Scaffold
+        run: |
+          flutter create --platforms=android .
+
       - name: Install Dependencies
         run: flutter pub get
 
