@@ -42,6 +42,7 @@
 <body>
 <div class="wrap">
   <h1>체육관 무대 · 무용실 예약</h1>
+  <div class="note" style="margin-bottom:4px">매주 수요일 오전 8시에 다음 주 전체가 열립니다.</div>
   <div class="sub" id="sub">불러오는 중…</div>
 
   <div class="card">
@@ -55,7 +56,6 @@
   <div class="tabs" id="rooms"></div>
   <div class="tabs" id="dates"></div>
   <div class="card" id="slots"></div>
-  <div class="note" id="rule"></div>
 </div>
 <div class="modal" id="modal"><div class="sheet">
   <h2>사용 주의사항</h2>
@@ -130,7 +130,6 @@ function render(){
       box.appendChild(b);
     });
   }
-  $('rule').textContent='매주 수요일 오전 8시에 다음 주 전체가 열립니다. 사용 당일 '+S.releaseTime+' 이후에는 한 주 제한 없이 남은 시간을 추가 예약할 수 있습니다.';
 }
 function blockOf(r,d,t){
   return (S.blocks||[]).filter(function(b){
