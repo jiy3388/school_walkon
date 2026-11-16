@@ -143,15 +143,56 @@ function blockSheet_() {
   }
   return sh;
 }
+// 날짜/시간을 어떤 모양으로 적어도 읽을 수 있게 표준 형식으로 바꾼다
+function normDate_(v, tz) {
+  if (Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v.getTime()))
+    return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+  var s = clean_(v);
+  var m = s.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  if (m) return m[1] + '-' + pad_(+m[2]) + '-' + pad_(+m[3]);
+  m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return m[3] + '-' + pad_(+m[1]) + '-' + pad_(+m[2]);
+  return '';
+}
+function normTime_(s) {
+  s = clean_(s);
+  if (!s) return '';
+  var m = s.match(/(\d{1,2})\s*(?:[:시]\s*(\d{1,2}))?/);
+  if (!m) return '';
+  var h = +m[1], mi = +(m[2] || 0);
+  if (/오후|PM/i.test(s) && h < 12) h += 12;
+  if (/오전|AM/i.test(s) && h === 12) h = 0;
+  return pad_(h) + ':' + pad_(mi);
+}
+function normRoom_(s) {
+  s = clean_(s);
+  if (!s) return '';
+  for (var i = 0; i < CONFIG.rooms.length; i++) {
+    var r = CONFIG.rooms[i];
+    if (r === s || r.indexOf(s) >= 0 || s.indexOf(r) >= 0) return r;
+  }
+  return s;
+}
 function blocks_() {
   var sh = blockSheet_();
   var n = sh.getLastRow();
   if (n < 2) return [];
-  return sh.getRange(2, 1, n - 1, 5).getDisplayValues().map(function (r) {
-    var from = clean_(r[0]).replace(/\./g, '-').replace(/\s/g, '');
-    var to = clean_(r[1]).replace(/\./g, '-').replace(/\s/g, '') || from;
-    return { from: from, to: to, time: clean_(r[2]), room: clean_(r[3]), reason: clean_(r[4]) };
-  }).filter(function (b) { return /^\d{4}-\d{2}-\d{2}$/.test(b.from); });
+  var tz = spreadsheet_().getSpreadsheetTimeZone();
+  var rng = sh.getRange(2, 1, n - 1, 5);
+  var vals = rng.getValues(), disp = rng.getDisplayValues();
+  var out = [];
+  for (var i = 0; i < vals.length; i++) {
+    var from = normDate_(vals[i][0], tz);
+    if (!from) continue;
+    out.push({
+      from: from,
+      to: normDate_(vals[i][1], tz) || from,
+      time: normTime_(disp[i][2]),
+      room: normRoom_(disp[i][3]),
+      reason: clean_(disp[i][4])
+    });
+  }
+  return out;
 }
 function blockFor_(blocks, room, date, time) {
   for (var i = 0; i < blocks.length; i++) {
