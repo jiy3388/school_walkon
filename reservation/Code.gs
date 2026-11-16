@@ -22,7 +22,7 @@ var CONFIG = {
   },
   maxPerDay: 2,               // 하루 최대 칸 수
   openWeekday: 3,             // 오픈 요일 (0=일, 1=월, 2=화, 3=수 ...)
-  openTime: '12:30',          // 오픈 시각
+  openTime: '08:00',          // 오픈 시각
   releaseTime: '12:30',       // 사용 당일 이 시각부터 제한 해제
   sheetName: '예약'
 };
