@@ -5,7 +5,7 @@
  *  - 매주 수요일 08:00 에 '다음 주(월~금)' 전체가 열린다. (이미 열린 이번 주도 계속 예약 가능)
  *  - 한 칸 = 30분, 한 사람(학번)이 하루 최대 2칸 (두 장소 합산).
  *  - 한 사람(학번)이 한 주(월~금)에 최대 2칸.
- *  - 사용 당일 08:00 이후에는 하루·한 주 제한이 모두 풀려, 남은 빈 칸을 추가로 예약할 수 있다.
+ *  - 사용 당일 08:00 이후에는 한 주 제한이 풀려, 남은 빈 칸을 추가로 예약할 수 있다.
  *  - 이미 지난 시간은 예약할 수 없다.
  */
 
@@ -21,7 +21,6 @@ var CONFIG = {
     4: ['12:00', '15:00', '16:00'],
     5: ['12:00', '15:00', '16:00']
   },
-  maxPerDay: 2,               // 하루 최대 칸 수
   maxPerWeek: 2,              // 한 주(월~금) 최대 칸 수
   openWeekday: 3,             // 오픈 요일 (0=일, 1=월, 2=화, 3=수 ...)
   openTime: '08:00',          // 오픈 시각
@@ -112,7 +111,6 @@ function getSchedule() {
     now: nowS,
     rooms: CONFIG.rooms,
     blockMinutes: CONFIG.blockMinutes,
-    maxPerDay: CONFIG.maxPerDay,
     maxPerWeek: CONFIG.maxPerWeek,
     releaseTime: CONFIG.releaseTime,
     dates: dates,
@@ -145,13 +143,10 @@ function book(room, date, time, sid, name) {
     if (all.some(function (b) { return b.date === date && b.time === time && b.room === room; }))
       return { ok: false, msg: '방금 다른 사람이 예약했습니다.' };
 
-    // 하루·한 주 제한 (당일 releaseTime 이후에는 제한 없음)
+    // 한 주 제한 (당일 releaseTime 이후에는 제한 없음)
     var released = nowS >= date + 'T' + CONFIG.releaseTime;
     if (!released) {
       var mineAll = all.filter(function (b) { return b.sid === sid; });
-      var today = mineAll.filter(function (b) { return b.date === date; }).length;
-      if (today >= CONFIG.maxPerDay)
-        return { ok: false, msg: '하루 최대 ' + CONFIG.maxPerDay + '칸까지 예약할 수 있습니다. (당일 ' + CONFIG.releaseTime + ' 이후 추가 예약 가능)' };
       var wk = weekKey_(d);
       var thisWeek = mineAll.filter(function (b) { return weekKey_(new Date(b.date + 'T00:00:00Z')) === wk; }).length;
       if (thisWeek >= CONFIG.maxPerWeek)
