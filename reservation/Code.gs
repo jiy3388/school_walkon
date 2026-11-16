@@ -85,8 +85,19 @@ function bookableDates_(now) {
 }
 
 // ===== 시트 =====
-function sheet_() {
+// 시트에 연결된 스크립트면 그 시트를, 독립 스크립트면 처음 실행 시 '시설 예약' 시트를 만들어 계속 사용
+function spreadsheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (ss) return ss;
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('SHEET_ID');
+  if (id) return SpreadsheetApp.openById(id);
+  ss = SpreadsheetApp.create('시설 예약 (체육관 무대·무용실)');
+  props.setProperty('SHEET_ID', ss.getId());
+  return ss;
+}
+function sheet_() {
+  var ss = spreadsheet_();
   var sh = ss.getSheetByName(CONFIG.sheetName);
   if (!sh) {
     sh = ss.insertSheet(CONFIG.sheetName);
