@@ -110,9 +110,13 @@ function render(){
     di.slots.forEach(function(t){
       var hit = S.bookings.filter(function(b){return b.date===date&&b.time===t&&b.room===room;})[0];
       var past = (date+'T'+t) <= S.now;
+      var blk = blockOf(room,date,t);
       var b=document.createElement('button'); b.className='slot';
       var label = t+' ~ '+endOf(t);
-      if(hit){
+      if(blk){
+        b.className+=' busy'; b.disabled=true;
+        b.innerHTML='<span>'+label+'</span><span>🚫 사용 불가'+(blk.reason?' · '+esc(blk.reason):'')+'</span>';
+      } else if(hit){
         var mine = sid && hit.sid===sid.slice(-2) && hit.name===nm;
         b.className+=' busy'+(mine?' mine':'');
         b.innerHTML='<span>'+label+'</span><span>'+esc(hit.name)+(mine?' · 내 예약 (눌러서 취소)':'')+'</span>';
@@ -127,6 +131,11 @@ function render(){
     });
   }
   $('rule').textContent='매주 수요일 오전 8시에 다음 주 전체가 열립니다. 사용 당일 '+S.releaseTime+' 이후에는 한 주 제한 없이 남은 칸을 추가 예약할 수 있습니다.';
+}
+function blockOf(r,d,t){
+  return (S.blocks||[]).filter(function(b){
+    return d>=b.from && d<=b.to && (!b.time||b.time===t) && (!b.room||b.room===r);
+  })[0];
 }
 function endOf(t){ var p=t.split(':'); var m=+p[0]*60+ +p[1]+S.blockMinutes; return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2); }
 function esc(s){ return s.replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }

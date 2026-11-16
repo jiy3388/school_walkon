@@ -26,6 +26,7 @@ var CONFIG = {
   openTime: '08:00',          // 오픈 시각
   releaseTime: '08:00',       // 사용 당일 이 시각부터 제한 해제
   sheetName: '예약',
+  blockSheetName: '차단',
   // 예약할 때 보여주고 체크하게 할 사용 주의사항 (학교 상황에 맞게 고치세요)
   notices: [
     '본 시설은 축제 공연 연습 용도로만 사용할 수 있습니다.',
@@ -117,6 +118,37 @@ function rows_() {
   });
 }
 
+// 차단 시트: 시작날짜 | 종료날짜(선택) | 시간(선택) | 장소(선택) | 사유(선택)
+function blockSheet_() {
+  var ss = spreadsheet_();
+  var sh = ss.getSheetByName(CONFIG.blockSheetName);
+  if (!sh) {
+    sh = ss.insertSheet(CONFIG.blockSheetName);
+    sh.appendRow(['시작날짜', '종료날짜(선택)', '시간(선택)', '장소(선택)', '사유(선택)']);
+    sh.getRange('A:C').setNumberFormat('@');
+    sh.getRange('A1').setNote('예) 2026-12-01 / 하루만 막으면 종료날짜 비움 / 시간을 비우면 그날 전체 / 장소를 비우면 두 곳 모두 / 날짜는 yyyy-mm-dd, 시간은 12:00 형식');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+function blocks_() {
+  var sh = blockSheet_();
+  var n = sh.getLastRow();
+  if (n < 2) return [];
+  return sh.getRange(2, 1, n - 1, 5).getDisplayValues().map(function (r) {
+    var from = clean_(r[0]).replace(/\./g, '-').replace(/\s/g, '');
+    var to = clean_(r[1]).replace(/\./g, '-').replace(/\s/g, '') || from;
+    return { from: from, to: to, time: clean_(r[2]), room: clean_(r[3]), reason: clean_(r[4]) };
+  }).filter(function (b) { return /^\d{4}-\d{2}-\d{2}$/.test(b.from); });
+}
+function blockFor_(blocks, room, date, time) {
+  for (var i = 0; i < blocks.length; i++) {
+    var b = blocks[i];
+    if (date >= b.from && date <= b.to && (!b.time || b.time === time) && (!b.room || b.room === room)) return b;
+  }
+  return null;
+}
+
 // ===== 클라이언트 API =====
 function getSchedule() {
   var now = kstNow_();
@@ -133,6 +165,7 @@ function getSchedule() {
     rooms: CONFIG.rooms,
     blockMinutes: CONFIG.blockMinutes,
     notices: CONFIG.notices,
+    blocks: blocks_().filter(function (b) { return b.to >= first; }),
     maxPerWeek: CONFIG.maxPerWeek,
     releaseTime: CONFIG.releaseTime,
     dates: dates,
@@ -161,6 +194,9 @@ function book(room, date, time, sid, name, agreed) {
     if (nowS < openStamp_(d)) return { ok: false, msg: '아직 예약이 열리지 않았습니다. (' + openStamp_(d).replace('T', ' ') + ' 오픈)' };
     if (date + 'T' + time <= nowS) return { ok: false, msg: '이미 지난 시간입니다.' };
     if (date > ymd_(bookableDates_(now).slice(-1)[0])) return { ok: false, msg: '예약 가능한 기간이 아닙니다.' };
+
+    var blk = blockFor_(blocks_(), room, date, time);
+    if (blk) return { ok: false, msg: '사용할 수 없는 시간입니다.' + (blk.reason ? ' (' + blk.reason + ')' : '') };
 
     var all = rows_();
     if (all.some(function (b) { return b.date === date && b.time === time && b.room === room; }))
