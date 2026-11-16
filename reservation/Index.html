@@ -23,6 +23,18 @@
   .slot.mine { background:var(--mine); }
   .slot:disabled { opacity:.6; cursor:default; }
   .note { font-size:13px; color:#7a8296; }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; padding:16px; z-index:10; }
+  .modal.on { display:flex; }
+  .sheet { background:var(--card); border-radius:14px; padding:18px; width:100%; max-width:460px; max-height:90vh; overflow:auto; }
+  .sheet h2 { font-size:18px; margin:0 0 4px; }
+  .sheet ul { padding-left:20px; margin:10px 0; }
+  .sheet li { margin-bottom:4px; }
+  .chk { display:flex; gap:10px; align-items:flex-start; padding:12px; border:1px solid var(--line); border-radius:10px; margin:12px 0; cursor:pointer; }
+  .chk input { flex:none; width:22px; height:22px; margin-top:2px; }
+  .btns { display:flex; gap:8px; }
+  .btns button { flex:1; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--fg); font-size:16px; cursor:pointer; }
+  .btns button.go { background:var(--pri); border-color:var(--pri); color:#fff; }
+  .btns button:disabled { opacity:.4; cursor:default; }
   #msg { position:fixed; left:16px; right:16px; bottom:16px; max-width:528px; margin:0 auto; padding:12px 14px; border-radius:10px; background:#1d2433; color:#fff; display:none; }
   #msg.err { background:#c0392b; }
 </style>
@@ -45,6 +57,13 @@
   <div class="card" id="slots"></div>
   <div class="note" id="rule"></div>
 </div>
+<div class="modal" id="modal"><div class="sheet">
+  <h2>사용 주의사항</h2>
+  <div class="note" id="mWhat"></div>
+  <ul id="mList"></ul>
+  <label class="chk"><input type="checkbox" id="mChk"><span>위 주의사항을 모두 읽었으며 지키겠습니다.</span></label>
+  <div class="btns"><button id="mNo">취소</button><button class="go" id="mYes" disabled>예약하기</button></div>
+</div></div>
 <div id="msg"></div>
 
 <script>
@@ -119,9 +138,19 @@ function ident(){
 }
 function doBook(t){
   var id=ident(); if(!id) return;
-  if(!confirm(md(date)+' '+room+' '+t+'~'+endOf(t)+' 예약할까요?')) return;
-  google.script.run.withSuccessHandler(function(r){ toast(r.msg,!r.ok); load(); })
-    .withFailureHandler(function(e){toast(e.message,true);}).book(room,date,t,id.sid,id.name);
+  var d=date, r=room;
+  $('mWhat').textContent=md(d)+' '+r+' '+t+' ~ '+endOf(t);
+  $('mList').innerHTML=S.notices.map(function(n){return '<li>'+esc(n)+'</li>';}).join('');
+  $('mChk').checked=false; $('mYes').disabled=true; $('modal').className='modal on';
+  $('mChk').onchange=function(){ $('mYes').disabled=!this.checked; };
+  $('mNo').onclick=function(){ $('modal').className='modal'; };
+  $('mYes').onclick=function(){
+    if(!$('mChk').checked) return;
+    $('mYes').disabled=true;
+    google.script.run.withSuccessHandler(function(res){ $('modal').className='modal'; toast(res.msg,!res.ok); load(); })
+      .withFailureHandler(function(e){ $('modal').className='modal'; toast(e.message,true); })
+      .book(r,d,t,id.sid,id.name,true);
+  };
 }
 function doCancel(t){
   var id=ident(); if(!id) return;

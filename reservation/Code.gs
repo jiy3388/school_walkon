@@ -25,7 +25,16 @@ var CONFIG = {
   openWeekday: 3,             // 오픈 요일 (0=일, 1=월, 2=화, 3=수 ...)
   openTime: '08:00',          // 오픈 시각
   releaseTime: '08:00',       // 사용 당일 이 시각부터 제한 해제
-  sheetName: '예약'
+  sheetName: '예약',
+  // 예약할 때 보여주고 체크하게 할 사용 주의사항 (학교 상황에 맞게 고치세요)
+  notices: [
+    '예약한 시간만 사용하고, 다음 사용자를 위해 시간을 지켜 주세요.',
+    '사용 후 정리정돈하고 사용 전 상태로 되돌려 주세요.',
+    '음식물(물 제외)은 반입하지 않습니다.',
+    '사용 후 소등하고 문을 잠가 주세요.',
+    '시설·기구가 파손되면 즉시 담당 선생님께 알려 주세요.',
+    '사용하지 않게 되면 미리 예약을 취소해 주세요.'
+  ]
 };
 
 // ===== 웹앱 진입 =====
@@ -80,7 +89,7 @@ function sheet_() {
   var sh = ss.getSheetByName(CONFIG.sheetName);
   if (!sh) {
     sh = ss.insertSheet(CONFIG.sheetName);
-    sh.appendRow(['날짜', '시작', '장소', '학번', '이름', '신청시각']);
+    sh.appendRow(['날짜', '시작', '장소', '학번', '이름', '신청시각', '주의사항 동의']);
     sh.getRange('A:B').setNumberFormat('@');
     sh.getRange('D:D').setNumberFormat('@');
     sh.setFrozenRows(1);
@@ -111,6 +120,7 @@ function getSchedule() {
     now: nowS,
     rooms: CONFIG.rooms,
     blockMinutes: CONFIG.blockMinutes,
+    notices: CONFIG.notices,
     maxPerWeek: CONFIG.maxPerWeek,
     releaseTime: CONFIG.releaseTime,
     dates: dates,
@@ -120,8 +130,9 @@ function getSchedule() {
 
 function clean_(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
 
-function book(room, date, time, sid, name) {
+function book(room, date, time, sid, name, agreed) {
   sid = clean_(sid); name = clean_(name);
+  if (agreed !== true) return { ok: false, msg: '사용 주의사항에 동의(체크)해야 예약할 수 있습니다.' };
   if (!/^\d{4,8}$/.test(sid)) return { ok: false, msg: '학번은 숫자 4~8자리로 입력해 주세요.' };
   if (!name || name.length > 20) return { ok: false, msg: '이름을 입력해 주세요.' };
   if (CONFIG.rooms.indexOf(room) < 0 || (CONFIG.slotsByDow[new Date(date + 'T00:00:00Z').getUTCDay()] || []).indexOf(time) < 0) return { ok: false, msg: '잘못된 요청입니다.' };
@@ -152,7 +163,7 @@ function book(room, date, time, sid, name) {
       if (thisWeek >= CONFIG.maxPerWeek)
         return { ok: false, msg: '한 주에 최대 ' + CONFIG.maxPerWeek + '칸까지 예약할 수 있습니다. (사용 당일 ' + CONFIG.releaseTime + ' 이후 추가 예약 가능)' };
     }
-    sheet_().appendRow([date, time, room, sid, name, nowS.replace('T', ' ')]);
+    sheet_().appendRow([date, time, room, sid, name, nowS.replace('T', ' '), '동의']);
     return { ok: true, msg: '예약되었습니다.' };
   } finally {
     lock.releaseLock();
