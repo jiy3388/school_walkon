@@ -68,7 +68,7 @@ function load(){
 }
 
 function render(){
-  $('sub').textContent = '현재 '+S.now.replace('T',' ')+' · 한 칸 1시간 · 하루 최대 '+S.maxPerDay+'칸';
+  $('sub').textContent = '현재 '+S.now.replace('T',' ')+' · 한 칸 1시간 · 한 주 최대 '+S.maxPerWeek+'칸';
   $('rooms').innerHTML = '';
   S.rooms.forEach(function(r){
     var b=document.createElement('button'); b.className='tab'+(r===room?' on':''); b.textContent=r;
