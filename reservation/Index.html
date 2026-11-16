@@ -42,8 +42,7 @@
 <body>
 <div class="wrap">
   <h1>체육관 무대 · 무용실 예약</h1>
-  <div class="note" style="margin-bottom:4px">매주 수요일 오전 8시에 다음 주 전체가 열립니다.</div>
-  <div class="sub" id="sub">불러오는 중…</div>
+  <div class="note" style="margin-bottom:12px">매주 수요일 오전 8시에 다음 주 전체가 열립니다.</div>
 
   <div class="card">
     <div class="row">
@@ -87,7 +86,6 @@ function load(){
 }
 
 function render(){
-  $('sub').textContent = '현재 '+S.now.replace('T',' ')+' · 한 주 최대 '+(S.maxPerWeek*S.blockMinutes/60)+'시간';
   $('rooms').innerHTML = '';
   S.rooms.forEach(function(r){
     var b=document.createElement('button'); b.className='tab'+(r===room?' on':''); b.textContent=r;
