@@ -82,7 +82,7 @@ function load(){
       date = (firstOpen||s.dates[0]).date;
     }
     render();
-  }).withFailureHandler(function(e){ toast('불러오기 실패: '+e.message, true); }).getSchedule();
+  }).withFailureHandler(function(e){ toast('불러오기 실패: '+e.message, true); }).getSchedule($('sid').value.trim(), $('name').value.trim());
 }
 
 function render(){
@@ -115,9 +115,9 @@ function render(){
         b.className+=' busy'; b.disabled=true;
         b.innerHTML='<span>'+label+'</span><span>🚫 사용 불가'+(blk.reason?' · '+esc(blk.reason):'')+'</span>';
       } else if(hit){
-        var mine = sid && hit.sid===sid.slice(-2) && hit.name===nm;
+        var mine = hit.mine;
         b.className+=' busy'+(mine?' mine':'');
-        b.innerHTML='<span>'+label+'</span><span>'+esc(hit.name)+(mine?' · 내 예약 (눌러서 취소)':'')+'</span>';
+        b.innerHTML='<span>'+label+'</span><span>'+(mine?'내 예약 (눌러서 취소)':'예약 마감')+'</span>';
         if(mine) b.onclick=function(){doCancel(t);}; else b.disabled=true;
       } else if(past){
         b.className+=' busy'; b.disabled=true; b.innerHTML='<span>'+label+'</span><span>지남</span>';
@@ -166,7 +166,7 @@ function doCancel(t){
 }
 
 $('sid').value=store('sid'); $('name').value=store('name');
-$('sid').oninput=$('name').oninput=function(){ if(S) render(); };
+var tmr; $('sid').oninput=$('name').oninput=function(){ clearTimeout(tmr); tmr=setTimeout(load,600); };
 load(); setInterval(load, 30000);
 </script>
 </body>

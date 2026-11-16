@@ -203,7 +203,8 @@ function blockFor_(blocks, room, date, time) {
 }
 
 // ===== 클라이언트 API =====
-function getSchedule() {
+function getSchedule(sid, name) {
+  sid = clean_(sid); name = clean_(name);
   var now = kstNow_();
   var nowS = stamp_(now);
   var dates = bookableDates_(now).map(function (d) {
@@ -212,7 +213,8 @@ function getSchedule() {
   });
   var first = dates.length ? dates[0].date : '';
   var bookings = rows_().filter(function (b) { return b.date >= first; })
-    .map(function (b) { return { date: b.date, time: b.time, room: b.room, name: b.name, sid: b.sid.slice(-2) }; });
+    // 예약자 정보는 화면으로 보내지 않고, 입력한 학번·이름과 일치하는 '내 예약'인지만 알려준다
+    .map(function (b) { return { date: b.date, time: b.time, room: b.room, mine: !!sid && !!name && b.sid === sid && b.name === name }; });
   return {
     now: nowS,
     rooms: CONFIG.rooms,
