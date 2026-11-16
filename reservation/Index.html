@@ -68,7 +68,7 @@ function load(){
 }
 
 function render(){
-  $('sub').textContent = '현재 '+S.now.replace('T',' ')+' · 한 칸 30분 · 하루 최대 '+S.maxPerDay+'칸';
+  $('sub').textContent = '현재 '+S.now.replace('T',' ')+' · 한 칸 1시간 · 하루 최대 '+S.maxPerDay+'칸';
   $('rooms').innerHTML = '';
   S.rooms.forEach(function(r){
     var b=document.createElement('button'); b.className='tab'+(r===room?' on':''); b.textContent=r;
@@ -84,9 +84,11 @@ function render(){
   var box = $('slots'); box.innerHTML='';
   if(!di.open){
     box.innerHTML='<div class="note">'+di.openAt.replace('T',' ')+' 에 열립니다.</div>';
+  } else if(!di.slots.length){
+    box.innerHTML='<div class="note">이 날은 예약 가능한 시간이 없습니다.</div>';
   } else {
     var sid=$('sid').value.trim(), nm=$('name').value.trim();
-    S.slots.forEach(function(t){
+    di.slots.forEach(function(t){
       var hit = S.bookings.filter(function(b){return b.date===date&&b.time===t&&b.room===room;})[0];
       var past = (date+'T'+t) <= S.now;
       var b=document.createElement('button'); b.className='slot';
@@ -107,7 +109,7 @@ function render(){
   }
   $('rule').textContent='매주 수요일 12:30에 다음 주 전체가 열립니다. 사용 당일 '+S.releaseTime+' 이후에는 하루 '+S.maxPerDay+'칸 제한 없이 남은 칸을 추가 예약할 수 있습니다.';
 }
-function endOf(t){ var p=t.split(':'); var m=+p[0]*60+ +p[1]+30; return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2); }
+function endOf(t){ var p=t.split(':'); var m=+p[0]*60+ +p[1]+S.blockMinutes; return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2); }
 function esc(s){ return s.replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
 function ident(){

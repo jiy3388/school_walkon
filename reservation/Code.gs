@@ -11,8 +11,15 @@
 // ===== 설정 (여기만 고치면 됩니다) =====
 var CONFIG = {
   rooms: ['체육관 무대', '무용실'],
-  // 30분 단위 시작 시각. 점심시간 + 방과후. 학교 시간표에 맞게 수정하세요.
-  slots: ['12:30', '13:00', '15:30', '16:00', '16:30', '17:00'],
+  blockMinutes: 60,           // 한 칸 길이(분)
+  // 요일별 칸 시작 시각 (0=일 ... 6=토). 점심 12~13시는 매일, 15·16시는 월/목/금만.
+  slotsByDow: {
+    1: ['12:00', '15:00', '16:00'],
+    2: ['12:00'],
+    3: ['12:00'],
+    4: ['12:00', '15:00', '16:00'],
+    5: ['12:00', '15:00', '16:00']
+  },
   maxPerDay: 2,               // 하루 최대 칸 수
   openWeekday: 3,             // 오픈 요일 (0=일, 1=월, 2=화, 3=수 ...)
   openTime: '12:30',          // 오픈 시각
@@ -89,7 +96,7 @@ function getSchedule() {
   var nowS = stamp_(now);
   var dates = bookableDates_(now).map(function (d) {
     var o = openStamp_(d);
-    return { date: ymd_(d), dow: d.getUTCDay(), open: nowS >= o, openAt: o };
+    return { date: ymd_(d), dow: d.getUTCDay(), open: nowS >= o, openAt: o, slots: CONFIG.slotsByDow[d.getUTCDay()] || [] };
   });
   var first = dates.length ? dates[0].date : '';
   var bookings = rows_().filter(function (b) { return b.date >= first; })
@@ -97,7 +104,7 @@ function getSchedule() {
   return {
     now: nowS,
     rooms: CONFIG.rooms,
-    slots: CONFIG.slots,
+    blockMinutes: CONFIG.blockMinutes,
     maxPerDay: CONFIG.maxPerDay,
     releaseTime: CONFIG.releaseTime,
     dates: dates,
@@ -111,7 +118,7 @@ function book(room, date, time, sid, name) {
   sid = clean_(sid); name = clean_(name);
   if (!/^\d{4,8}$/.test(sid)) return { ok: false, msg: '학번은 숫자 4~8자리로 입력해 주세요.' };
   if (!name || name.length > 20) return { ok: false, msg: '이름을 입력해 주세요.' };
-  if (CONFIG.rooms.indexOf(room) < 0 || CONFIG.slots.indexOf(time) < 0) return { ok: false, msg: '잘못된 요청입니다.' };
+  if (CONFIG.rooms.indexOf(room) < 0 || (CONFIG.slotsByDow[new Date(date + 'T00:00:00Z').getUTCDay()] || []).indexOf(time) < 0) return { ok: false, msg: '잘못된 요청입니다.' };
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
