@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root { --bg:#f6f7fb; --fg:#1d2433; --card:#fff; --line:#dde1ea; --pri:#2f6fed; --ok:#e8f0ff; --busy:#eceef3; --mine:#d9f5e3; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14171f; --fg:#e8ebf2; --card:#1d2230; --line:#303749; --pri:#6c9bff; --ok:#223256; --busy:#262c3b; --mine:#1f4331; } }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:16px/1.5 -apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; }
+  .wrap { max-width:560px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:#7a8296; font-size:13px; margin-bottom:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px; }
+  .row { display:flex; gap:8px; }
+  input { flex:1; min-width:0; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); font-size:16px; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .tab { padding:8px 12px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--fg); font-size:14px; cursor:pointer; }
+  .tab.on { background:var(--pri); border-color:var(--pri); color:#fff; }
+  .tab.lock { opacity:.55; }
+  .slot { width:100%; text-align:left; display:flex; justify-content:space-between; padding:12px; margin-bottom:6px; border-radius:10px; border:1px solid var(--line); background:var(--ok); color:var(--fg); font-size:16px; cursor:pointer; }
+  .slot.busy { background:var(--busy); cursor:default; }
+  .slot.mine { background:var(--mine); }
+  .slot:disabled { opacity:.6; cursor:default; }
+  .note { font-size:13px; color:#7a8296; }
+  #msg { position:fixed; left:16px; right:16px; bottom:16px; max-width:528px; margin:0 auto; padding:12px 14px; border-radius:10px; background:#1d2433; color:#fff; display:none; }
+  #msg.err { background:#c0392b; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>체육관 무대 · 무용실 예약</h1>
+  <div class="sub" id="sub">불러오는 중…</div>
+
+  <div class="card">
+    <div class="row">
+      <input id="sid" inputmode="numeric" placeholder="학번" autocomplete="off">
+      <input id="name" placeholder="이름" autocomplete="off">
+    </div>
+    <div class="note" style="margin-top:6px">예약·취소할 때 이 학번과 이름이 사용됩니다.</div>
+  </div>
+
+  <div class="tabs" id="rooms"></div>
+  <div class="tabs" id="dates"></div>
+  <div class="card" id="slots"></div>
+  <div class="note" id="rule"></div>
+</div>
+<div id="msg"></div>
+
+<script>
+var S = null, room = null, date = null;
+var DOW = ['일','월','화','수','목','금','토'];
+function $(id){ return document.getElementById(id); }
+function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k)||''; localStorage.setItem(k,v);}catch(e){return '';} }
+function toast(t, err){ var m=$('msg'); m.textContent=t; m.className=err?'err':''; m.style.display='block'; clearTimeout(toast.t); toast.t=setTimeout(function(){m.style.display='none';},3500); }
+function md(d){ var p=d.split('-'); return (+p[1])+'/'+(+p[2]); }
+
+function load(){
+  google.script.run.withSuccessHandler(function(s){
+    S = s;
+    if(!room) room = s.rooms[0];
+    if(!date || !s.dates.some(function(d){return d.date===date;})) {
+      var firstOpen = s.dates.filter(function(d){return d.open;})[0];
+      date = (firstOpen||s.dates[0]).date;
+    }
+    render();
+  }).withFailureHandler(function(e){ toast('불러오기 실패: '+e.message, true); }).getSchedule();
+}
+
+function render(){
+  $('sub').textContent = '현재 '+S.now.replace('T',' ')+' · 한 칸 30분 · 하루 최대 '+S.maxPerDay+'칸';
+  $('rooms').innerHTML = '';
+  S.rooms.forEach(function(r){
+    var b=document.createElement('button'); b.className='tab'+(r===room?' on':''); b.textContent=r;
+    b.onclick=function(){room=r;render();}; $('rooms').appendChild(b);
+  });
+  $('dates').innerHTML = '';
+  S.dates.forEach(function(d){
+    var b=document.createElement('button'); b.className='tab'+(d.date===date?' on':'')+(d.open?'':' lock');
+    b.textContent=md(d.date)+'('+DOW[d.dow]+')'+(d.open?'':' 🔒');
+    b.onclick=function(){date=d.date;render();}; $('dates').appendChild(b);
+  });
+  var di = S.dates.filter(function(d){return d.date===date;})[0];
+  var box = $('slots'); box.innerHTML='';
+  if(!di.open){
+    box.innerHTML='<div class="note">'+di.openAt.replace('T',' ')+' 에 열립니다.</div>';
+  } else {
+    var sid=$('sid').value.trim(), nm=$('name').value.trim();
+    S.slots.forEach(function(t){
+      var hit = S.bookings.filter(function(b){return b.date===date&&b.time===t&&b.room===room;})[0];
+      var past = (date+'T'+t) <= S.now;
+      var b=document.createElement('button'); b.className='slot';
+      var label = t+' ~ '+endOf(t);
+      if(hit){
+        var mine = sid && hit.sid===sid.slice(-2) && hit.name===nm;
+        b.className+=' busy'+(mine?' mine':'');
+        b.innerHTML='<span>'+label+'</span><span>'+esc(hit.name)+(mine?' · 내 예약 (눌러서 취소)':'')+'</span>';
+        if(mine) b.onclick=function(){doCancel(t);}; else b.disabled=true;
+      } else if(past){
+        b.className+=' busy'; b.disabled=true; b.innerHTML='<span>'+label+'</span><span>지남</span>';
+      } else {
+        b.innerHTML='<span>'+label+'</span><span>예약 가능</span>';
+        b.onclick=function(){doBook(t);};
+      }
+      box.appendChild(b);
+    });
+  }
+  $('rule').textContent='매주 수요일 12:30에 다음 주 전체가 열립니다. 사용 당일 '+S.releaseTime+' 이후에는 하루 '+S.maxPerDay+'칸 제한 없이 남은 칸을 추가 예약할 수 있습니다.';
+}
+function endOf(t){ var p=t.split(':'); var m=+p[0]*60+ +p[1]+30; return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2); }
+function esc(s){ return s.replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+function ident(){
+  var sid=$('sid').value.trim(), nm=$('name').value.trim();
+  if(!sid||!nm){ toast('학번과 이름을 먼저 입력해 주세요.', true); return null; }
+  store('sid',sid); store('name',nm); return {sid:sid,name:nm};
+}
+function doBook(t){
+  var id=ident(); if(!id) return;
+  if(!confirm(md(date)+' '+room+' '+t+'~'+endOf(t)+' 예약할까요?')) return;
+  google.script.run.withSuccessHandler(function(r){ toast(r.msg,!r.ok); load(); })
+    .withFailureHandler(function(e){toast(e.message,true);}).book(room,date,t,id.sid,id.name);
+}
+function doCancel(t){
+  var id=ident(); if(!id) return;
+  if(!confirm('이 예약을 취소할까요?')) return;
+  google.script.run.withSuccessHandler(function(r){ toast(r.msg,!r.ok); load(); })
+    .withFailureHandler(function(e){toast(e.message,true);}).cancel(room,date,t,id.sid,id.name);
+}
+
+$('sid').value=store('sid'); $('name').value=store('name');
+$('sid').oninput=$('name').oninput=function(){ if(S) render(); };
+load(); setInterval(load, 30000);
+</script>
+</body>
+</html>
