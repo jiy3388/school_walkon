@@ -149,7 +149,7 @@ function doBook(t){
   var id=ident(); if(!id) return;
   var d=date, r=room;
   $('mWhat').textContent=md(d)+' '+r+' '+t+' ~ '+endOf(t);
-  $('mList').innerHTML=S.notices.map(function(n){return '<li>'+esc(n)+'</li>';}).join('');
+  $('mList').innerHTML=((S.notices.rooms[r]||[]).concat(S.notices.common)).map(function(n){return '<li>'+esc(n)+'</li>';}).join('');
   $('mChk').checked=false; $('mYes').disabled=true; $('modal').className='modal on';
   $('mChk').onchange=function(){ $('mYes').disabled=!this.checked; };
   $('mNo').onclick=function(){ $('modal').className='modal'; };
