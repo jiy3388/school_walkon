@@ -22,7 +22,7 @@
 
 ## 시간 설정 변경
 `Code.gs` 맨 위 `CONFIG`:
-- `slotsByDow`: 요일별 칸 시작 시각 (기본: 월~금 점심 12~13시, 월·목·금은 15~16시, 16~17시 추가)
+- `slotsByDow`: 요일별 칸 시작 시각 (기본: 월~금 점심 12~13시, 월·목·금은 15~16시 추가)
 - `blockMinutes`: 한 칸 길이(분, 기본 60)
 - `rooms`, `maxPerWeek`, `openWeekday`, `openTime`, `releaseTime`
 
