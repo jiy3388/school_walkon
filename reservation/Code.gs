@@ -287,3 +287,17 @@ function cancel(room, date, time, sid, name) {
     lock.releaseLock();
   }
 }
+
+// ===== 점검용: Apps Script 편집기에서 이 함수를 선택해 [실행] → 아래 [실행 로그] 확인 =====
+function checkBlocks() {
+  var ss = spreadsheet_();
+  Logger.log('사용 중인 시트 파일: ' + ss.getUrl());
+  Logger.log('탭 목록: ' + ss.getSheets().map(function (s) { return s.getName(); }).join(', '));
+  var b = blocks_();
+  Logger.log('인식된 차단 행: ' + b.length + '개');
+  b.forEach(function (x, i) {
+    Logger.log((i + 1) + ') ' + x.from + ' ~ ' + x.to + ' | 시간=' + (x.time || '하루 전체') + ' | 장소=' + (x.room || '두 곳 모두') + ' | 사유=' + x.reason);
+  });
+  var sh = blockSheet_();
+  Logger.log('차단 탭에 적힌 행 수(제목 제외): ' + Math.max(0, sh.getLastRow() - 1) + ' → 위 인식된 개수와 다르면 날짜 칸을 확인하세요.');
+}
