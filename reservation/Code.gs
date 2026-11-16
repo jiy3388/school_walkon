@@ -221,7 +221,7 @@ function book(room, date, time, sid, name, agreed) {
       var wk = weekKey_(d);
       var thisWeek = mineAll.filter(function (b) { return weekKey_(new Date(b.date + 'T00:00:00Z')) === wk; }).length;
       if (thisWeek >= CONFIG.maxPerWeek)
-        return { ok: false, msg: '한 주에 최대 ' + CONFIG.maxPerWeek + '칸까지 예약할 수 있습니다. (사용 당일 ' + CONFIG.releaseTime + ' 이후 추가 예약 가능)' };
+        return { ok: false, msg: '한 주에 최대 ' + (CONFIG.maxPerWeek * CONFIG.blockMinutes / 60) + '시간까지 예약할 수 있습니다. (사용 당일 ' + CONFIG.releaseTime + ' 이후 추가 예약 가능)' };
     }
     sheet_().appendRow([date, time, room, sid, name, nowS.replace('T', ' '), '동의']);
     return { ok: true, msg: '예약되었습니다.' };
